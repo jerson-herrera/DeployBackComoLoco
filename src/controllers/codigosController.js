@@ -1,4 +1,5 @@
 import CodigoModel from '../models/codigos.js'; // Asegúrate de que la ruta sea correcta
+import UserInfoModel from "../models/userInfo.js"
 
 // Funcion para crear los 1000 códigos
 export const createCodes = async (req, res) => {
@@ -95,3 +96,30 @@ export const getAllCodes = async (req, res) => {
         res.status(500).json({ error: 'Error del servidor al obtener los códigos' });
     }
 };
+
+
+
+//Funcion para mostrar la informacion del ADMIN
+  export const obtenerUsersGanadores = async (req, res) => {
+    try {
+      // Buscar los códigos ganadores usados y poblar los datos del usuario
+      const codigosGanadores = await CodigoModel.find({
+        Estado: 'usado',
+        TienePremio: true,
+      }).populate({
+        path: 'usuario', // Poblamos el campo 'usuario'
+        model: UserInfoModel, // Aseguramos la referencia correcta al modelo UserInfo
+        select: 'Nombre Cedula Celular Correo Ciudad', // Seleccionamos los campos necesarios
+        options: { strictPopulate: false }, // Evitamos fallos con la referencia
+      });
+  
+      if (!codigosGanadores.length) {
+        return res.status(404).json({ message: 'No hay códigos ganadores usados.' });
+      }
+  
+      res.status(200).json(codigosGanadores);
+    } catch (error) {
+      console.error('Error al obtener los códigos ganadores:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  };
