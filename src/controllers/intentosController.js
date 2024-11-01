@@ -1,91 +1,13 @@
-// import IntentosModel from '../models/intentos.js';
-// import Codigo from '../models/codigos.js'; // Asegúrate de importar tu modelo de Codigos
-
-// export const crearIntento = async (req, res) => {
-//     const { user } = req; // Usuario autenticado
-
-//     try {
-//         const { codigo } = req.body;
-
-//         // Verificar si el código proporcionado existe en la base de datos
-//         const codigoEncontrado = await Codigo.findOne({ Codigo: codigo });
-
-//         // Si el código no se encuentra, retorna un error
-//         if (!codigoEncontrado) {
-//             return res.status(404).json({ error: 'Código no encontrado.' });
-//         }
-
-//         // Si el código ya ha sido usado, retorna un error
-//         if (codigoEncontrado.Estado === 'usado') {
-//             return res.status(400).json({ error: 'El código ya ha sido usado.' });
-//         }
-
-//         // Crear el nuevo intento
-//         const nuevoIntento = await IntentosModel.create({
-//             codigo: codigo, // Almacena el código como string
-//             userId: user.id, // ID del usuario autenticado
-//         });
-
-//         // Actualizar el estado del código a 'usado'
-//         codigoEncontrado.Estado = 'usado';
-//         codigoEncontrado.usuario = user.id; // Asigna el ID del usuario que usa el código
-//         codigoEncontrado.FechaUso = nuevoIntento.fecha; // Establece la fecha de uso
-//         await codigoEncontrado.save();
-
-//         res.status(201).json({ message: 'Intento creado exitosamente', nuevoIntento });
-//     } catch (error) {
-//         console.error('Error al crear el intento:', error);
-//         res.status(400).json({ error: error.message });
-//     }
-// };
-
-
-
-
-
-// export const crearIntento = async (req, res) => {
-//     const { user } = req;
-
-//     try {
-//         const { codigo } = req.body;
-
-//         // Verificar si el código proporcionado existe en la base de datos
-//         const codigoEncontrado = await Codigo.findOne({ Codigo: codigo });
-
-//         // Si el código no se encuentra, retorna un error
-//         if (!codigoEncontrado) {
-//             return res.status(404).json({ error: 'Código no encontrado.' });
-//         }
-
-//         // Si el código ya ha sido usado, retorna un error
-//         if (codigoEncontrado.Estado === 'usado') {
-//             return res.status(400).json({ error: 'El código ya ha sido usado.' });
-//         }
-
-//         // Crear el nuevo intento
-//         const nuevoIntento = await IntentosModel.create({
-//             codigo: codigo,
-//             userId: user.id,
-//         });
-
-//         // Actualizar el estado del código a 'usado'
-//         codigoEncontrado.Estado = 'usado';
-//         codigoEncontrado.usuario = user.id;
-//         codigoEncontrado.FechaUso = nuevoIntento.fecha;
-//         await codigoEncontrado.save();
-
-//         res.status(201).json({ message: 'Intento creado exitosamente', nuevoIntento });
-//     } catch (error) {
-//         console.error('Error al crear el intento:', error); // Imprime el error completo para depuración
-//         res.status(400).json({ error: error.message });
-//     }
-// };
 import IntentosModel from '../models/intentos.js';
 import Codigo from '../models/codigos.js';
 
+//Crear el intento de usuario 
 export const crearIntento = async (req, res) => {
     const { codigo } = req.body;
     const { user } = req;
+
+    // Verifica que el ID del usuario está disponible en req.user
+    console.log("ID del usuario:", user._id); // Esto imprimirá el ID del usuario en la consola
 
     try {
         // Busca el código en la base de datos
@@ -97,13 +19,13 @@ export const crearIntento = async (req, res) => {
 
         // Verifica si el código ya ha sido usado
         if (codigoEncontrado.Estado === 'usado') {
-            return res.status(400).json({ error: 'Este código ya ha sido usado.' });
+            return res.status(400).json({ error: 'Código ya registrado.' }); // Mensaje de código ya usado
         }
 
         // Crea el nuevo intento
         const nuevoIntento = new IntentosModel({
             codigo: codigoEncontrado.Codigo,
-            userId: user.id,
+            userId: user._id, // Asegúrate de que `user._id` esté definido y sea un ObjectId válido
         });
 
         // Guarda el nuevo intento en la base de datos
@@ -111,35 +33,38 @@ export const crearIntento = async (req, res) => {
 
         // Actualiza el estado del código
         codigoEncontrado.Estado = 'usado';
-        codigoEncontrado.usuario = user.id; // Asigna el ID del usuario que usa el código
+        codigoEncontrado.usuario = user._id; // Asigna el ID del usuario que usa el código
         codigoEncontrado.FechaUso = nuevoIntento.fecha; // Establece la fecha de uso
         await codigoEncontrado.save();
 
-        // Responde con el nuevo intento, incluyendo el premio si lo tiene
-        res.status(201).json({
-            nuevoIntento,
-            premio: codigoEncontrado.TienePremio ? codigoEncontrado.Premio : null, // Asigna el premio si tiene
-        });
+        // Verifica si el código tiene premio
+        if (codigoEncontrado.TienePremio) {
+            return res.status(201).json({
+                mensaje: '¡Ganaste!',
+                premio: codigoEncontrado.Premio,
+                nuevoIntento,
+            });
+        } else {
+            return res.status(201).json({
+                mensaje: 'No ganaste.',
+                nuevoIntento,
+            });
+        }
     } catch (error) {
         console.error('Error al crear intento:', error);
         res.status(500).json({ error: 'Error al crear intento.' });
     }
 };
 
-
-
-
-
-//Funcion para Obtener los codigos en los que el usuario salio ganador
 // Obtener intentos del usuario con premio
-
-
 export const obtenerIntentosConPremio = async (req, res) => {
     const { user } = req;
 
     try {
-        // Obtener todos los intentos del usuario
-        const intentos = await IntentosModel.find({ userId: user.id }).populate('codigo');
+        // Obtener todos los intentos del usuario, incluyendo los datos de usuario y código
+        const intentos = await IntentosModel.find({ userId: user.id })
+            .populate('codigo')
+            .populate('userId'); // Añadir esto para traer la info del usuario
 
         // Filtrar intentos que tengan premio
         const intentosConPremio = await Promise.all(
@@ -149,6 +74,12 @@ export const obtenerIntentosConPremio = async (req, res) => {
                     fecha: intento.fecha,
                     codigo: intento.codigo,
                     premio: codigo.TienePremio ? codigo.Premio : null,
+                    usuario: intento.userId ? {
+                        Nombre: intento.userId.Nombre,
+                        Correo: intento.userId.Correo,
+                        Celular: intento.userId.Celular,
+                        // Otros campos que quieras mostrar del usuario
+                    } : null
                 };
             })
         );

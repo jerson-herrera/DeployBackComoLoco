@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 // Definición del esquema para Intentos
 const intentosSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId, // Referencia al modelo de UserInfo
+        ref: 'UserInfo', // Nombre del modelo de usuarios
+        required: true,
+    },
     codigo: {
         type: String, // Cambiar a String
         required: true,
@@ -9,11 +14,6 @@ const intentosSchema = new mongoose.Schema({
     fecha: {
         type: Date,
         default: Date.now, // Valor por defecto: fecha actual
-    },
-    userId: {
-        type: mongoose.Schema.Types.ObjectId, // Referencia al modelo de UserInfo
-        ref: 'UserInfo', // Nombre del modelo de usuarios
-        required: true,
     },
 });
 
