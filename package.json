@@ -1,7 +1,7 @@
 {
   "name": "back",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "./src/app.js",
   "type": "module",
   "scripts": {
     "back": "node --watch ./src/app.js",
