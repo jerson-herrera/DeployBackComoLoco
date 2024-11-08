@@ -95,3 +95,38 @@ export const obtenerIntentosConPremio = async (req, res) => {
 };
 
 
+// Obtener todos los intentos con premio de todos los usuarios
+export const obtenerTodosIntentosConPremio = async (req, res) => {
+    try {
+        // Obtener todos los intentos donde el código tiene premio
+        const intentos = await IntentosModel.find()
+            .populate('codigo')
+            .populate('userId'); // Añadimos esto para traer la info de cada usuario
+
+        // Filtrar intentos que tengan premio
+        const intentosConPremio = await Promise.all(
+            intentos.map(async (intento) => {
+                const codigo = await Codigo.findOne({ Codigo: intento.codigo });
+                return {
+                    fecha: intento.fecha,
+                    codigo: intento.codigo,
+                    premio: codigo.TienePremio ? codigo.Premio : null,
+                    usuario: intento.userId ? {
+                        Nombre: intento.userId.Nombre,
+                        Correo: intento.userId.Correo,
+                        Celular: intento.userId.Celular,
+                        // Otros datos que quieras mostrar
+                    } : null
+                };
+            })
+        );
+
+        // Filtrar solo los intentos que tienen premio
+        const intentosFiltrados = intentosConPremio.filter(intento => intento.premio);
+
+        res.status(200).json(intentosFiltrados);
+    } catch (error) {
+        console.error('Error al obtener los intentos:', error);
+        res.status(500).json({ error: 'Error al obtener los intentos.' });
+    }
+};
